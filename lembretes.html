@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lembretes</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a30;
+    --accent: #c9a84c;
+    --accent2: #e8c97a;
+    --text: #e8e4da;
+    --muted: #6e6b63;
+    --danger: #c45c5c;
+    --ok: #5ca47a;
+  }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: -20%;
+    width: 70vw;
+    height: 70vw;
+    background: radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  header .eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  header h1 em {
+    font-style: italic;
+    color: var(--accent2);
+  }
+
+  header .subtitle {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* Status pill */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+  }
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .dot.active { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: pulse 2s infinite; }
+  .dot.paused { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .next-info {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .next-info span {
+    color: var(--accent2);
+    font-weight: 400;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Time window */
+  .time-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .time-sep {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  input[type="time"], input[type="number"], input[type="text"], select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.6rem 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input[type="time"]:focus, input[type="number"]:focus, input[type="text"]:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+
+  select option { background: var(--surface2); }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.7;
+    font-size: 0.8rem;
+  }
+
+  /* Interval row */
+  .interval-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+
+  /* Phrases list */
+  .phrase-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    padding-right: 0.2rem;
+  }
+
+  .phrase-list::-webkit-scrollbar { width: 4px; }
+  .phrase-list::-webkit-scrollbar-track { background: transparent; }
+  .phrase-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .phrase-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+
+  .phrase-item:hover { border-color: var(--muted); }
+
+  .phrase-item .phrase-text {
+    flex: 1;
+    color: var(--text);
+  }
+
+  .phrase-item .btn-del {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 1rem;
+    padding: 0 0.2rem;
+    line-height: 1;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .phrase-item .btn-del:hover { color: var(--danger); }
+
+  .add-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .add-row input { flex: 1; }
+
+  /* Buttons */
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0e0e10;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  .actions {
+    display: flex;
+    gap: 0.7rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-big {
+    flex: 1;
+    padding: 0.9rem;
+    font-size: 0.78rem;
+  }
+
+  /* Notification preview */
+  .notification-preview {
+    position: fixed;
+    bottom: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(380px, 90vw);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 1.2rem 1.4rem;
+    z-index: 100;
+    transition: bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.15);
+  }
+
+  .notification-preview.show { bottom: 1.5rem; }
+
+  .notif-eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .notif-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .notif-time {
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    text-align: right;
+  }
+
+  /* Log */
+  .log {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .log li {
+    font-size: 0.68rem;
+    color: var(--muted);
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .log li .log-time { color: var(--accent); flex-shrink: 0; }
+  .log li .log-msg { color: var(--text); flex: 1; }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-style: italic;
+  }
+
+  /* Responsive */
+  @media(max-width: 480px) {
+    .interval-row { grid-template-columns: 1fr; }
+    .time-row { grid-template-columns: 1fr; }
+    .time-sep { display: none; }
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(201,168,76,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 1rem 0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <p class="eyebrow">app de lembretes</p>
+    <h1>Lembre-se de <em>viver</em></h1>
+    <p class="subtitle">Frases personalizadas · Janela de tempo · Intervalos flexíveis</p>
+  </header>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Inativo</span>
+    </div>
+    <div class="next-info" id="nextInfo">—</div>
+  </div>
+
+  <!-- Time window -->
+  <div class="card">
+    <div class="card-title">Janela de tempo</div>
+    <div class="time-row">
+      <div class="field">
+        <label>Início</label>
+        <input type="time" id="startTime" value="08:00">
+      </div>
+      <div class="time-sep">→</div>
+      <div class="field">
+        <label>Fim</label>
+        <input type="time" id="endTime" value="22:00">
+      </div>
+    </div>
+    <div class="interval-row">
+      <div class="field">
+        <label>Intervalo mínimo (min)</label>
+        <input type="number" id="minInterval" value="30" min="1" max="1440">
+      </div>
+      <div class="field">
+        <label>Intervalo máximo (min)</label>
+        <input type="number" id="maxInterval" value="90" min="1" max="1440">
+      </div>
+    </div>
+  </div>
+
+  <!-- Phrases -->
+  <div class="card">
+    <div class="card-title">Frases <span class="tag" id="countTag">0</span></div>
+    <ul class="phrase-list" id="phraseList">
+      <li class="empty" id="emptyMsg">Nenhuma frase adicionada ainda.</li>
+    </ul>
+    <div class="add-row">
+      <input type="text" id="newPhrase" placeholder="Digite uma frase e pressione Enter…" maxlength="200">
+      <button class="btn btn-primary" onclick="addPhrase()">+</button>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary btn-big" id="toggleBtn" onclick="toggleScheduler()">▶ Iniciar</button>
+    <button class="btn btn-outline btn-big" onclick="previewNotif()">👁 Pré-visualizar</button>
+    <button class="btn btn-danger btn-big" onclick="clearLog()">Limpar log</button>
+  </div>
+
+  <!-- Log -->
+  <div class="card" style="margin-top: 1rem;">
+    <div class="card-title">Histórico</div>
+    <ul class="log" id="logList">
+      <li><span class="log-time">—</span><span class="log-msg" style="color:var(--muted);font-style:italic;">Aguardando início…</span></li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- Notification toast -->
+<div class="notification-preview" id="notifToast">
+  <div class="notif-eyebrow">🔔 lembrete</div>
+  <div class="notif-text" id="notifText">—</div>
+  <div class="notif-time" id="notifTime">agora</div>
+</div>
+
+<script>
+  // ---- State ----
+  let phrases = [
+    "Beba água agora.",
+    "Respire fundo por 30 segundos.",
+    "Como está sua postura neste momento?",
+    "Olhe para longe por 20 segundos.",
+    "Você está presente aqui e agora.",
+    "Movimento: levante e estique o corpo."
+  ];
+
+  let running = false;
+  let nextTimeout = null;
+  let nextAt = null;
+
+  // ---- Render phrases ----
+  function renderPhrases() {
+    const list = document.getElementById('phraseList');
+    const empty = document.getElementById('emptyMsg');
+    document.getElementById('countTag').textContent = phrases.length;
+
+    if (phrases.length === 0) {
+      list.innerHTML = '<li class="empty" id="emptyMsg">Nenhuma frase adicionada ainda.</li>';
+      return;
+    }
+
+    list.innerHTML = phrases.map((p, i) => `
+      <li class="phrase-item">
+        <span class="phrase-text">${escHtml(p)}</span>
+        <button class="btn-del" onclick="removePhrase(${i})" title="Remover">×</button>
+      </li>
+    `).join('');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function addPhrase() {
+    const inp = document.getElementById('newPhrase');
+    const val = inp.value.trim();
+    if (!val) return;
+    phrases.push(val);
+    inp.value = '';
+    renderPhrases();
+  }
+
+  function removePhrase(i) {
+    phrases.splice(i, 1);
+    renderPhrases();
+  }
+
+  document.getElementById('newPhrase').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addPhrase();
+  });
+
+  // ---- Scheduler ----
+  function toggleScheduler() {
+    if (running) stopScheduler();
+    else startScheduler();
+  }
+
+  function startScheduler() {
+    if (phrases.length === 0) {
+      alert('Adicione pelo menos uma frase antes de iniciar.');
+      return;
+    }
+    running = true;
+    updateStatusUI();
+    scheduleNext();
+    addLog('Agendador iniciado.');
+  }
+
+  function stopScheduler() {
+    running = false;
+    if (nextTimeout) clearTimeout(nextTimeout);
+    nextTimeout = null;
+    nextAt = null;
+    updateStatusUI();
+    addLog('Agendador pausado.');
+  }
+
+  function scheduleNext() {
+    if (!running) return;
+
+    const now = new Date();
+    const window = getWindow();
+
+    if (!window) {
+      // Outside window — check again in 1 min
+      nextTimeout = setTimeout(scheduleNext, 60000);
+      nextAt = null;
+      document.getElementById('nextInfo').innerHTML = 'Fora da janela de tempo';
+      return;
+    }
+
+    const minMin = parseInt(document.getElementById('minInterval').value) || 30;
+    const maxMin = parseInt(document.getElementById('maxInterval').value) || 90;
+    const clampedMin = Math.min(minMin, maxMin);
+    const clampedMax = Math.max(minMin, maxMin);
+
+    const delayMs = (clampedMin + Math.random() * (clampedMax - clampedMin)) * 60000;
+    const fireAt = new Date(now.getTime() + delayMs);
+
+    // If fireAt is outside window end, push to next day's window start
+    if (fireAt > window.end) {
+      const tomorrowStart = new Date(window.end);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      tomorrowStart.setHours(window.startH, window.startM, 0, 0);
+      const msToTomorrow = tomorrowStart - now;
+      nextTimeout = setTimeout(scheduleNext, msToTomorrow);
+      nextAt = tomorrowStart;
+      updateNextInfo();
+      addLog(`Próximo lembrete: amanhã às ${fmtTime(tomorrowStart)}`);
+      return;
+    }
+
+    nextAt = fireAt;
+    updateNextInfo();
+    nextTimeout = setTimeout(() => {
+      fireReminder();
+      scheduleNext();
+    }, delayMs);
+  }
+
+  function getWindow() {
+    const startVal = document.getElementById('startTime').value || '08:00';
+    const endVal = document.getElementById('endTime').value || '22:00';
+    const [sh, sm] = startVal.split(':').map(Number);
+    const [eh, em] = endVal.split(':').map(Number);
+    const now = new Date();
+
+    const start = new Date(now); start.setHours(sh, sm, 0, 0);
+    const end = new Date(now); end.setHours(eh, em, 0, 0);
+
+    if (now < start || now > end) return null;
+    return { start, end, startH: sh, startM: sm };
+  }
+
+  function fireReminder() {
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    showToast(phrase);
+    addLog(phrase);
+
+    // Browser notification if permitted
+    if (Notification && Notification.permission === 'granted') {
+      new Notification('Lembrete', { body: phrase, icon: '' });
+    }
+  }
+
+  // ---- Toast ----
+  let toastTimer;
+  function showToast(text) {
+    const toast = document.getElementById('notifToast');
+    document.getElementById('notifText').textContent = text;
+    document.getElementById('notifTime').textContent = fmtTime(new Date());
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+  }
+
+  function previewNotif() {
+    if (phrases.length === 0) { alert('Adicione frases primeiro.'); return; }
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    showToast(phrase);
+  }
+
+  // ---- Log ----
+  function addLog(msg) {
+    const list = document.getElementById('logList');
+    if (list.children.length === 1 && list.children[0].querySelector('.log-msg')?.style.fontStyle === 'italic') {
+      list.innerHTML = '';
+    }
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="log-time">${fmtTime(new Date())}</span><span class="log-msg">${escHtml(msg)}</span>`;
+    list.insertBefore(li, list.firstChild);
+    if (list.children.length > 40) list.removeChild(list.lastChild);
+  }
+
+  function clearLog() {
+    document.getElementById('logList').innerHTML = '<li><span class="log-time">—</span><span class="log-msg" style="color:var(--muted);font-style:italic;">Log limpo.</span></li>';
+  }
+
+  // ---- UI Updates ----
+  function updateStatusUI() {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    const btn = document.getElementById('toggleBtn');
+    if (running) {
+      dot.className = 'dot active';
+      txt.textContent = 'Ativo';
+      btn.textContent = '⏸ Pausar';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-outline');
+    } else {
+      dot.className = 'dot';
+      txt.textContent = 'Inativo';
+      btn.textContent = '▶ Iniciar';
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-outline');
+      document.getElementById('nextInfo').textContent = '—';
+    }
+  }
+
+  function updateNextInfo() {
+    if (!nextAt) return;
+    const el = document.getElementById('nextInfo');
+    el.innerHTML = `Próximo: <span>${fmtTime(nextAt)}</span>`;
+  }
+
+  // Live clock update for "next"
+  setInterval(() => {
+    if (running && nextAt) updateNextInfo();
+  }, 30000);
+
+  // ---- Utils ----
+  function fmtTime(d) {
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ---- Request notification permission ----
+  if (Notification && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // ---- Init ----
+  renderPhrases();
+</script>
+</body>
+</html>
